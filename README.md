@@ -71,7 +71,7 @@ in a separate gothread. This creates a couple of common race conditions:
 
 This library provides some hooks to make this easier to deal with.
 
-####Expect
+#### Expect
 
 The mock provides the ability to "expect" a specific number of timer starts or a specific number 
 of processed time events. You prepare this by calling Expect* or setting an expect option _before_ 
