@@ -20,11 +20,11 @@ func (a clockTimers) Less(i, j int) bool { return a[i].Next().Before(a[j].Next()
 type Timer struct {
 	C       <-chan time.Time
 	c       chan time.Time
-	timer   *time.Timer // realtime impl, if set
-	next    time.Time   // next tick time
-	mock    *Mock       // mock clock, if set
-	fn      func()      // AfterFunc function, if set
-	stopped bool        // True if stopped, false if running
+	timer   *time.Timer         // realtime impl, if set
+	next    time.Time           // next tick time
+	mock    *UnsynchronizedMock // mock clock, if set
+	fn      func()              // AfterFunc function, if set
+	stopped bool                // True if stopped, false if running
 }
 
 // Stop turns off the ticker.
@@ -60,14 +60,23 @@ func (t *Timer) Reset(d time.Duration) bool {
 	return registered
 }
 
+// Confirm confirms that a timer event has been processed - no op for system clock, but allows synchronization of the mock
+func (t *Timer) Confirm() {
+	if t.timer != nil {
+		return
+	}
+
+	t.mock.Confirm()
+}
+
 // Ticker holds a channel that receives "ticks" at regular intervals.
 type Ticker struct {
 	C      <-chan time.Time
 	c      chan time.Time
-	ticker *time.Ticker  // realtime impl, if set
-	next   time.Time     // next tick time
-	mock   *Mock         // mock clock, if set
-	d      time.Duration // time between ticks
+	ticker *time.Ticker        // realtime impl, if set
+	next   time.Time           // next tick time
+	mock   *UnsynchronizedMock // mock clock, if set
+	d      time.Duration       // time between ticks
 }
 
 // Stop turns off the ticker.
@@ -93,4 +102,13 @@ func (t *Ticker) Reset(dur time.Duration) {
 
 	t.d = dur
 	t.next = t.mock.now.Add(dur)
+}
+
+// Confirm confirms that a ticker event has been processed - no op for system clock, but allows synchronization of the mock
+func (t *Ticker) Confirm() {
+	if t.ticker != nil {
+		return
+	}
+
+	t.mock.Confirm()
 }
