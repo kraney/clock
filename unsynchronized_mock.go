@@ -354,6 +354,7 @@ func (m *UnsynchronizedMock) NewTicker(d time.Duration) *Ticker {
 		m.expectingStarts--
 		m.newTimers.Done() // signal that we started a timer
 	} else if m.tForFail != nil {
+		m.tForFail.Helper()
 		m.tForFail.Errorf("unexpected ticker start")
 	} else {
 		m.recentTimers++
@@ -378,6 +379,7 @@ func (m *UnsynchronizedMock) NewTimer(d time.Duration) *Timer {
 		m.expectingStarts--
 		m.newTimers.Done() // signal that we started a timer
 	} else if m.tForFail != nil {
+		m.tForFail.Helper()
 		m.tForFail.Errorf("unexpected timer start")
 	} else {
 		m.recentTimers++
