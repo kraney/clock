@@ -11,7 +11,7 @@ import (
 // programmatically adjusted.
 type Clock interface {
 	After(d time.Duration) <-chan time.Time
-	AfterFunc(d time.Duration, f func()) *Timer
+	AfterFunc(d time.Duration, f func()) MockableTimer
 	Now() time.Time
 	Since(t time.Time) time.Duration
 	Sleep(d time.Duration)
@@ -30,15 +30,15 @@ func SetSystemClock(clock Clock) {
 	systemClock = clock
 }
 
-func After(d time.Duration) <-chan time.Time     { return systemClock.After(d) }
-func AfterFunc(d time.Duration, f func()) *Timer { return systemClock.AfterFunc(d, f) }
-func Now() time.Time                             { return systemClock.Now() }
-func Since(t time.Time) time.Duration            { return systemClock.Since(t) }
-func Sleep(d time.Duration)                      { systemClock.Sleep(d) }
-func Tick(d time.Duration) <-chan time.Time      { return systemClock.Tick(d) }
-func NewTicker(d time.Duration) *Ticker          { return systemClock.NewTicker(d) }
-func NewTimer(d time.Duration) *Timer            { return systemClock.NewTimer(d) }
-func Confirm()                                   { systemClock.Confirm() }
+func After(d time.Duration) <-chan time.Time            { return systemClock.After(d) }
+func AfterFunc(d time.Duration, f func()) MockableTimer { return systemClock.AfterFunc(d, f) }
+func Now() time.Time                                    { return systemClock.Now() }
+func Since(t time.Time) time.Duration                   { return systemClock.Since(t) }
+func Sleep(d time.Duration)                             { systemClock.Sleep(d) }
+func Tick(d time.Duration) <-chan time.Time             { return systemClock.Tick(d) }
+func NewTicker(d time.Duration) *Ticker                 { return systemClock.NewTicker(d) }
+func NewTimer(d time.Duration) *Timer                   { return systemClock.NewTimer(d) }
+func Confirm()                                          { systemClock.Confirm() }
 
 // New returns an instance of a real-time clock.
 func New() Clock {
@@ -47,7 +47,7 @@ func New() Clock {
 
 func (c *clock) After(d time.Duration) <-chan time.Time { return time.After(d) }
 
-func (c *clock) AfterFunc(d time.Duration, f func()) *Timer {
+func (c *clock) AfterFunc(d time.Duration, f func()) MockableTimer {
 	return &Timer{timer: time.AfterFunc(d, f)}
 }
 

@@ -2,6 +2,13 @@ package clock
 
 import "time"
 
+// MockableTimer is an interface replacement for *time.Timer that can be mocked
+type MockableTimer interface {
+	Stop() bool
+	Reset(d time.Duration) bool
+	Confirm()
+}
+
 // clockTimer represents an object with an associated start time.
 type clockTimer interface {
 	Next() time.Time

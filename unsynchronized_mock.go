@@ -305,7 +305,7 @@ func (m *UnsynchronizedMock) After(d time.Duration) <-chan time.Time {
 
 // AfterFunc waits for the duration to elapse and then executes a function.
 // A Timer is returned that can be stopped.
-func (m *UnsynchronizedMock) AfterFunc(d time.Duration, f func()) *Timer {
+func (m *UnsynchronizedMock) AfterFunc(d time.Duration, f func()) MockableTimer {
 	t := m.NewTimer(d)
 	t.C = nil
 	t.fn = f
