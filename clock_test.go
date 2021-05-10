@@ -18,7 +18,7 @@ func TestClock_After(t *testing.T) {
 	go func() {
 		time.Sleep(30 * time.Millisecond)
 		if !ok {
-			t.Fatal("too late")
+			t.Errorf("too late")
 		}
 	}()
 	gosched()
@@ -39,7 +39,7 @@ func TestClock_AfterFunc(t *testing.T) {
 	go func() {
 		time.Sleep(30 * time.Millisecond)
 		if !ok {
-			t.Fatal("too late")
+			t.Errorf("too late")
 		}
 	}()
 	gosched()
@@ -74,7 +74,7 @@ func TestClock_Sleep(t *testing.T) {
 	go func() {
 		time.Sleep(30 * time.Millisecond)
 		if !ok {
-			t.Fatal("too late")
+			t.Errorf("too late")
 		}
 	}()
 	gosched()
@@ -95,7 +95,7 @@ func TestClock_Tick(t *testing.T) {
 	go func() {
 		time.Sleep(50 * time.Millisecond)
 		if !ok {
-			t.Fatal("too late")
+			t.Errorf("too late")
 		}
 	}()
 	gosched()
@@ -118,7 +118,7 @@ func TestClock_Ticker(t *testing.T) {
 	go func() {
 		time.Sleep(200 * time.Millisecond)
 		if !ok {
-			t.Fatal("too late")
+			t.Errorf("too late")
 		}
 	}()
 	gosched()
@@ -172,7 +172,7 @@ func TestClock_Timer(t *testing.T) {
 	go func() {
 		time.Sleep(30 * time.Millisecond)
 		if !ok {
-			t.Fatal("too late")
+			t.Errorf("too late")
 		}
 	}()
 	gosched()
@@ -214,7 +214,7 @@ func TestClock_Timer_Reset(t *testing.T) {
 	go func() {
 		time.Sleep(30 * time.Millisecond)
 		if !ok {
-			t.Fatal("too late")
+			t.Errorf("too late")
 		}
 	}()
 	gosched()
