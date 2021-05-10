@@ -384,7 +384,7 @@ func ExampleMock_Sleep() {
 	// 1970-01-01 00:00:10 +0000 UTC: 100
 }
 
-func ExampleMock_Ticker() {
+func ExampleMock_NewTicker() {
 	// Create a new mock clock.
 	mock := NewMock(nil, 1)
 	SetSystemClock(mock)
@@ -413,7 +413,7 @@ func ExampleMock_Ticker() {
 	// Count is 15 after 15 seconds
 }
 
-func ExampleMock_Timer() {
+func ExampleMock_NewTimer() {
 	// Create a new mock clock.
 	mock := NewMock(nil, 1)
 	SetSystemClock(mock)

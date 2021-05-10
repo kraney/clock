@@ -7,6 +7,9 @@ Clock is a small library for mocking time in Go. It provides an interface
 around the standard library's [`time`][time] package so that the application
 can use the realtime clock while tests can use the mock clock.
 
+This package is derived from github.com/benbjohnson/clock, but has been modified
+to support better synchronization with separate threads that start timers
+
 [time]: http://golang.org/pkg/time/
 
 
@@ -18,7 +21,7 @@ Your application can maintain a `Clock` variable that will allow realtime and
 mock clocks to be interchangeable. For example, if you had an `Application` type:
 
 ```go
-import "github.com/benbjohnson/clock"
+import "github.com/kraney/clock"
 
 type Application struct {
 	Clock clock.Clock
@@ -45,7 +48,7 @@ In your tests, you will want to use a `Mock` clock:
 import (
 	"testing"
 
-	"github.com/benbjohnson/clock"
+	"github.com/kraney/clock"
 )
 
 func TestApplication_DoSomething(t *testing.T) {
