@@ -9,10 +9,8 @@ import (
 
 var (
 	WaitForStartsBefore           = &WaitForStartsBeforeOption{}
-	WaitForConfirmsBefore         = &WaitForConfirmsBeforeOption{}
 	WaitBefore                    = &WaitBeforeOption{}
 	WaitForStartsAfter            = &WaitForStartsAfterOption{}
-	WaitForConfirmsAfter          = &WaitForConfirmsAfterOption{}
 	WaitAfter                     = &WaitAfterOption{}
 	IgnoreUnexpectedUpcomingEvent = &IgnoreUnexpectedUpcomingEventOption{}
 	OptimisticSched               = &OptimisticSchedOption{}
@@ -66,22 +64,6 @@ func (o *ExpectUpcomingStartsOption) UpcomingEventsOption(mock *UnsynchronizedMo
 
 func (o *ExpectUpcomingStartsOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {}
 
-type ExpectUpcomingConfirmsOption struct {
-	confirms int
-}
-
-func ExpectUpcomingConfirms(confirms int) *ExpectUpcomingConfirmsOption {
-	return &ExpectUpcomingConfirmsOption{confirms}
-}
-
-func (o *ExpectUpcomingConfirmsOption) PriorEventsOption(mock *UnsynchronizedMock) {}
-
-func (o *ExpectUpcomingConfirmsOption) UpcomingEventsOption(mock *UnsynchronizedMock) {
-	mock.ExpectConfirms(int(o.confirms))
-}
-
-func (o *ExpectUpcomingConfirmsOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {}
-
 type WaitForStartsBeforeOption struct{}
 
 func (o *WaitForStartsBeforeOption) PriorEventsOption(mock *UnsynchronizedMock) {
@@ -91,16 +73,6 @@ func (o *WaitForStartsBeforeOption) PriorEventsOption(mock *UnsynchronizedMock) 
 func (o *WaitForStartsBeforeOption) UpcomingEventsOption(mock *UnsynchronizedMock) {}
 
 func (o *WaitForStartsBeforeOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {}
-
-type WaitForConfirmsBeforeOption struct{}
-
-func (o *WaitForConfirmsBeforeOption) PriorEventsOption(mock *UnsynchronizedMock) {
-	mock.WaitForConfirm()
-}
-
-func (o *WaitForConfirmsBeforeOption) UpcomingEventsOption(mock *UnsynchronizedMock) {}
-
-func (o *WaitForConfirmsBeforeOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {}
 
 type WaitBeforeOption struct{}
 
@@ -120,16 +92,6 @@ func (o *WaitForStartsAfterOption) UpcomingEventsOption(mock *UnsynchronizedMock
 
 func (o *WaitForStartsAfterOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {
 	mock.WaitForStart()
-}
-
-type WaitForConfirmsAfterOption struct{}
-
-func (o *WaitForConfirmsAfterOption) PriorEventsOption(mock *UnsynchronizedMock) {}
-
-func (o *WaitForConfirmsAfterOption) UpcomingEventsOption(mock *UnsynchronizedMock) {}
-
-func (o *WaitForConfirmsAfterOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {
-	mock.WaitForConfirm()
 }
 
 type WaitAfterOption struct{}
@@ -195,21 +157,6 @@ func (m *UnsynchronizedMock) ExpectStarts(timerCount int) {
 // WaitForStart will block until all expected timers have started
 func (m *UnsynchronizedMock) WaitForStart() {
 	m.newTimers.Wait()
-}
-
-// ExpectConfirms informs the mock how many timers should have been confirmed before we advance the clock
-func (m *UnsynchronizedMock) ExpectConfirms(confirmCount int) {
-	m.mu.Lock()
-	newconfirms := confirmCount - m.recentConfirms
-	m.expectingConfirms = m.expectingConfirms + newconfirms
-	m.confirms.Add(newconfirms)
-	m.recentConfirms = 0
-	m.mu.Unlock()
-}
-
-// WaitForConfirm will block until all expected timers have been confirmed
-func (m *UnsynchronizedMock) WaitForConfirm() {
-	m.confirms.Wait()
 }
 
 // Wait waits for starts and confirms before returning
@@ -385,20 +332,6 @@ func (m *UnsynchronizedMock) NewTimer(d time.Duration) *Timer {
 		m.recentTimers++
 	}
 	return t
-}
-
-func (m *UnsynchronizedMock) Confirm() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.expectingConfirms > 0 {
-		m.expectingConfirms--
-		m.confirms.Done() // signal that timer has been confirmed
-	} else if m.tForFail != nil {
-		m.tForFail.Helper()
-		m.tForFail.Errorf("Unexpected ticker confirmation")
-	} else {
-		m.recentConfirms++
-	}
 }
 
 func (m *UnsynchronizedMock) removeClockTimer(t clockTimer) {

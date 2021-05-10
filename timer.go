@@ -2,13 +2,6 @@ package clock
 
 import "time"
 
-// MockableTimer is an interface replacement for *time.Timer that can be mocked
-type MockableTimer interface {
-	Stop() bool
-	Reset(d time.Duration) bool
-	Confirm()
-}
-
 // clockTimer represents an object with an associated start time.
 type clockTimer interface {
 	Next() time.Time
@@ -67,15 +60,6 @@ func (t *Timer) Reset(d time.Duration) bool {
 	return registered
 }
 
-// Confirm confirms that a timer event has been processed - no op for system clock, but allows synchronization of the mock
-func (t *Timer) Confirm() {
-	if t.timer != nil {
-		return
-	}
-
-	t.mock.Confirm()
-}
-
 // Ticker holds a channel that receives "ticks" at regular intervals.
 type Ticker struct {
 	C      <-chan time.Time
@@ -109,13 +93,4 @@ func (t *Ticker) Reset(dur time.Duration) {
 
 	t.d = dur
 	t.next = t.mock.now.Add(dur)
-}
-
-// Confirm confirms that a ticker event has been processed - no op for system clock, but allows synchronization of the mock
-func (t *Ticker) Confirm() {
-	if t.ticker != nil {
-		return
-	}
-
-	t.mock.Confirm()
 }

@@ -297,7 +297,7 @@ func TestMock_Ticker_Multi(t *testing.T) {
 }
 
 func TestMock_Interface(t *testing.T) {
-	var c Clock = NewUnsynchronizedMock()
+	var c MockableClock = NewUnsynchronizedMock()
 	SetSystemClock(c)
 }
 

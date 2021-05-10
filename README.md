@@ -81,22 +81,27 @@ of processed time events. You prepare this by calling Expect* or setting an expe
 the other threads will be doing this. Then, when you need to be sure those threads are done, you can
 call WaitFor* which will block until the expected count is reached.
 
-In order to facilitate this for processed events, the timer objects returned by this package have an
-extra "Confirm" method. Your code must call this when finished processing a timer event. When using
-the system clock, Confirm is a no-op. But when using the mock, it will call Done on the waitgroup so
-that your blocked Wait will eventually return.
+This library can optionally provide similar synchronization after a timer is sent, so that a test
+may easily proceed to validate assertions that should be true after a timer is processed.
+In order to facilitate this the timer objects returned by this package are
+Confirmable - they have an extra `Confirm()` method. In order to use this
+functionality, your code must call `Confirm()` when finished processing a timer event.
 
-Optionally, you can toggle the mock to fail a test if an unexpected start or event happens using the
-FailOnUnexpectedUpcomingEvent option. Once this is set, any new timers or new confirms that aren't accounted
-for by a call to Expect will fail a test. This behavior continues on all subsequent calls unless you 
-expressly turn it back off using IgnoreUnexpectedUpcomingEvent.
+When using the system clock, `Confirm()` is a no-op. But when using the mock,
+it will call Done on the waitgroup so that your blocked Wait will eventually
+return.
+
+Optionally, you can toggle the mock to fail a test if an unexpected start or
+confirm event happens using the FailOnUnexpectedUpcomingEvent option. Once this
+is set, any new timers or new confirms that aren't accounted for by a call to
+Expect will fail a test. This behavior continues on all subsequent calls unless
+you expressly turn it back off using IgnoreUnexpectedUpcomingEvent.
 
 ### Defaults
 
 The mock returned by `NewMock` assumes / enforces
  * that tests should fail when unexpected timer events happen (if testing.T is not nil)
  * that clock should block until all expected timers are started before advancing the clock
- * that clock should block until all timer handling has been confirmed before continuing
 
 It's expected that this is usually (always?) the right approach during testing. If there is
 a use case where it's not, then `NewUnconfirmedMock()` can be used instead. It supports all
@@ -135,7 +140,7 @@ go func() {
     for {
         <-ticker.C
         count++
-	// this tells the mock that the timer event has been handled
+	// this optional call tells the mock that the timer event has been handled
 	ticker.Confirm()
     }
 }()
