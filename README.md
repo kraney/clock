@@ -155,7 +155,7 @@ go func() {
 
 // Wait for all expected starts, then move the clock forward 10 seconds.
 // Expect a confirm. After advancing the clock, wait until the confirm has been seen
-confirm.Add(2)
+confirm.Add(10)
 mock.Add(10 * time.Second, clock.WaitBefore)
 
 // this will ensure this thread waits until the timer thread has defintely run and handled the timer event
@@ -165,7 +165,7 @@ confirm.Wait()
 fmt.Println(count)
 
 // for convenience and readability, you can pass options to make waits happen
-confirm.Add(2)
+confirm.Add(20)
 mock.Add(20 * time.Second)
 confirm.Wait()
 
