@@ -121,11 +121,13 @@ func TestClock_Tick(t *testing.T) {
 func TestClock_Ticker(t *testing.T) {
 	var ok bool
 	go func() {
-		time.Sleep(100 * time.Millisecond)
+		// Allow margin for thread scheduling
+		time.Sleep(95 * time.Millisecond)
 		ok = true
 	}()
 	go func() {
-		time.Sleep(200 * time.Millisecond)
+		// Allow margin for thread scheduling
+		time.Sleep(205 * time.Millisecond)
 		if !ok {
 			t.Errorf("too late")
 		}
@@ -163,8 +165,10 @@ func TestClock_Ticker_Rst(t *testing.T) {
 
 	ticker := New().NewTicker(20 * time.Millisecond)
 	<-ticker.C
+	// allow margin for thread scheduling
 	ticker.Reset(5 * time.Millisecond)
 	<-ticker.C
+	gosched()
 	if ok {
 		t.Fatal("too late")
 	}
@@ -234,6 +238,7 @@ func TestClock_Timer_Reset(t *testing.T) {
 	}
 
 	<-timer.C
+	gosched()
 	if !ok {
 		t.Fatal("too early")
 	}
