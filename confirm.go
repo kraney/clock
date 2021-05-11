@@ -46,7 +46,7 @@ func (o *WaitForConfirmsAfterOption) PriorEventsOption(mock *UnsynchronizedMock)
 func (o *WaitForConfirmsAfterOption) UpcomingEventsOption(mock *UnsynchronizedMock) {}
 
 func (o *WaitForConfirmsAfterOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {
-	mock.Confirm()
+	mock.WaitForConfirm()
 }
 
 func Confirm() {
@@ -83,28 +83,22 @@ func (t *Ticker) Confirm() {
 // ExpectConfirms informs the mock how many timers should have been confirmed before we advance the clock
 func (m *UnsynchronizedMock) ExpectConfirms(confirmCount int) {
 	m.mu.Lock()
-	newconfirms := confirmCount - m.recentConfirms
-	m.expectingConfirms = m.expectingConfirms + newconfirms
-	m.confirms.Add(newconfirms)
-	m.recentConfirms = 0
+	sp := m.syncPoints[OnConfirm]
 	m.mu.Unlock()
+	sp.Add(confirmCount)
 }
 
 // WaitForConfirm will block until all expected timers have been confirmed
 func (m *UnsynchronizedMock) WaitForConfirm() {
-	m.confirms.Wait()
+	m.mu.Lock()
+	sp := m.syncPoints[OnConfirm]
+	m.mu.Unlock()
+	sp.Wait()
 }
 
 func (m *UnsynchronizedMock) Confirm() {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.expectingConfirms > 0 {
-		m.expectingConfirms--
-		m.confirms.Done() // signal that timer has been confirmed
-	} else if m.tForFail != nil {
-		m.tForFail.Helper()
-		m.tForFail.Errorf("Unexpected ticker confirmation")
-	} else {
-		m.recentConfirms++
-	}
+	sp := m.syncPoints[OnConfirm]
+	m.mu.Unlock()
+	sp.Done()
 }

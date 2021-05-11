@@ -15,8 +15,13 @@ type Mock struct {
 // timer-related work is done before tests go on to assert the results.
 func NewMock(t *testing.T, expectedStarts int) *Mock {
 	ret := &Mock{
-		UnsynchronizedMock: UnsynchronizedMock{now: time.Unix(0, 0)},
+		UnsynchronizedMock: UnsynchronizedMock{
+			now:        time.Unix(0, 0),
+			syncPoints: make(map[CheckpointName]Checkpoint),
+		},
 	}
+	ret.syncPoints[OnStart] = NewFailOnUnexpectedCheckpoint(OnStart, t)
+	ret.syncPoints[OnConfirm] = NewFailOnUnexpectedCheckpoint(OnConfirm, t)
 	ExpectUpcomingStarts(expectedStarts).UpcomingEventsOption(&ret.UnsynchronizedMock)
 	if t != nil {
 		FailOnUnexpectedUpcomingEvent(t).UpcomingEventsOption(&ret.UnsynchronizedMock)
