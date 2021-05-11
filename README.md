@@ -138,7 +138,7 @@ Timers and Tickers are also controlled by this same mock clock. They will only
 execute when the clock is moved forward:
 
 ```go
-mock := clock.NewMock(clock.ExpectUpcomingStarts(1), clock.FailOnUnexpectedUpcomingEvent(t))
+mock := clock.NewUnsynchronizedMock(clock.ExpectUpcomingStarts(1), clock.FailOnUnexpectedUpcomingEvent(t))
 count := 0
 confirm := clock.NewOptionalCheckPoint(CheckpointName("incremented"))
 
