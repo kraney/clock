@@ -103,7 +103,10 @@ func (t *FailOnUnexpectedCheckpoint) Done() {
 }
 
 func (t *FailOnUnexpectedCheckpoint) Wait() {
+	// cannot hold lock during wait since Done() must be able to run
 	t.wg.Wait()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.expected = 0
 }
 
