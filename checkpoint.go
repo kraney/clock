@@ -1,7 +1,6 @@
 package clock
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 )
@@ -12,34 +11,6 @@ type Checkpoint interface {
 	Add(delta int)
 	Done()
 	Wait()
-}
-
-var (
-	checkpoints map[CheckpointName]Checkpoint
-)
-
-func init() {
-	checkpoints = make(map[CheckpointName]Checkpoint)
-}
-
-func Done(name CheckpointName) {
-	cp, ok := checkpoints[name]
-	if ok {
-		cp.Done()
-	}
-}
-
-func EnableCheckpoint(name CheckpointName, cp Checkpoint) error {
-	_, ok := checkpoints[name]
-	if ok {
-		return fmt.Errorf("Checkpoint %v already exists", name)
-	}
-	checkpoints[name] = cp
-	return nil
-}
-
-func DisableCheckpoint(name CheckpointName) {
-	delete(checkpoints, name)
 }
 
 // OptionalCheckpoint provides waitgroup-like functionality with assistance

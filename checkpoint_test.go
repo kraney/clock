@@ -7,29 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const testCheckpoint = "TestCheckpoint"
-
-func TestCheckpointRegistry(t *testing.T) {
-	// Done on disabled checkpoint is a no-op
-	Done(testCheckpoint)
-
-	experiment := &testing.T{}
-	cp := NewFailOnUnexpectedCheckpoint(testCheckpoint, experiment)
-	EnableCheckpoint(testCheckpoint, cp)
-	Done(testCheckpoint)
-	assert.True(t, experiment.Failed(), "Done call had no effect")
-
-	experiment = &testing.T{}
-	cp = NewFailOnUnexpectedCheckpoint(testCheckpoint, experiment)
-	EnableCheckpoint(testCheckpoint, cp)
-	cp.Add(1)
-	Done(testCheckpoint)
-	assert.False(t, experiment.Failed(), "unexpected failure")
-
-	DisableCheckpoint(testCheckpoint)
-	Done(testCheckpoint)
-	assert.False(t, experiment.Failed(), "unexpected failure")
-}
+const testCheckpoint CheckpointName = "TestCheckpoint"
 
 func TestOptionalCheckPoint(t *testing.T) {
 	cp := NewOptionalCheckPoint(testCheckpoint)

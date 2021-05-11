@@ -39,6 +39,8 @@ app.Clock = clock.New()
 Then all timers and time-related functionality should be performed from the
 `Clock` variable.
 
+Alternately, you can use the functions in the clock package that mimic Go's time package.
+
 
 ### Mocking time
 
@@ -52,9 +54,19 @@ import (
 )
 
 func TestApplication_DoSomething(t *testing.T) {
-	mock := clock.NewMock()
+	mock := clock.NewMock(t, 0)
 	app := Application{Clock: mock}
 	...
+}
+```
+
+Or, if you're using the functions in the clock package, you must override
+the system clock
+
+```go
+func TestApplication_DoSomething(t *testing.T) {
+  clock.SetSystemClock(clock.NewMock(t, 0))
+  ...
 }
 ```
 
@@ -72,30 +84,25 @@ in a separate gothread. This creates a couple of common race conditions:
  * You need to be confident the thread that handles the timer is _done_ doing its thing
    so you can then do asserts about what the result was.
 
-This library provides some hooks to make this easier to deal with.
+This library provides some tools to make this easier to deal with.
 
 #### Expect
 
 The mock provides the ability to "expect" a specific number of timer starts or a specific number 
 of processed time events. You prepare this by calling Expect* or setting an expect option _before_ 
 the other threads will be doing this. Then, when you need to be sure those threads are done, you can
-call WaitFor* which will block until the expected count is reached.
+call Wait* which will block until the expected count is reached.
 
-This library can optionally provide similar synchronization after a timer is sent, so that a test
-may easily proceed to validate assertions that should be true after a timer is processed.
-In order to facilitate this the timer objects returned by this package are
-Confirmable - they have an extra `Confirm()` method. In order to use this
-functionality, your code must call `Confirm()` when finished processing a timer event.
+Optionally, you can toggle the mock to fail a test if an unexpected event
+happens using the FailOnUnexpectedUpcomingEvent option. Once this is set, any
+new timers that aren't accounted for by a call to Expect will fail a test. This
+behavior continues on all subsequent calls unless you expressly turn it back
+off using IgnoreUnexpectedUpcomingEvent.
 
-When using the system clock, `Confirm()` is a no-op. But when using the mock,
-it will call Done on the waitgroup so that your blocked Wait will eventually
-return.
-
-Optionally, you can toggle the mock to fail a test if an unexpected start or
-confirm event happens using the FailOnUnexpectedUpcomingEvent option. Once this
-is set, any new timers or new confirms that aren't accounted for by a call to
-Expect will fail a test. This behavior continues on all subsequent calls unless
-you expressly turn it back off using IgnoreUnexpectedUpcomingEvent.
+The helpers used for synchronization are also exposed for use, such as to wait for a thread
+to handle a timer during a test. The are similar to sync.WaitGroup, but
+ * OptionalCheckpoint does not panic on Done() for unexpected calls
+ * FailOnUnexpectedCheckpoint will fail a test (rather than panic) on unexpected calls to Done()
 
 ### Defaults
 
@@ -105,7 +112,7 @@ The mock returned by `NewMock` assumes / enforces
 
 It's expected that this is usually (always?) the right approach during testing. If there is
 a use case where it's not, then `NewUnconfirmedMock()` can be used instead. It supports all
-of the same synchronization features, but does not enforce them by default, leaving it to the
+of the same synchronization features but does not enforce them by default, leaving it to the
 user to choose when to specify a Wait or to turn on FailOnUnexpectedEvent.
 
 ### Controlling time
@@ -133,6 +140,7 @@ execute when the clock is moved forward:
 ```go
 mock := clock.NewMock(clock.ExpectUpcomingStarts(1), clock.FailOnUnexpectedUpcomingEvent(t))
 count := 0
+confirm := clock.NewOptionalCheckPoint(CheckpointName("incremented"))
 
 // Kick off a timer to increment every 1 mock second.
 go func() {
@@ -140,23 +148,26 @@ go func() {
     for {
         <-ticker.C
         count++
-	// this optional call tells the mock that the timer event has been handled
-	ticker.Confirm()
+        // this optional call provides synchronization that the timer event has been handled
+        confirm.Done()
     }
 }()
 
 // Wait for all expected starts, then move the clock forward 10 seconds.
 // Expect a confirm. After advancing the clock, wait until the confirm has been seen
-mock.Add(10 * time.Second, clock.WaitForStartsBefore, clock.ExpectUpcomingConfirms(2))
+confirm.Add(2)
+mock.Add(10 * time.Second, clock.WaitBefore)
 
 // this will ensure this thread waits until the timer thread has defintely run and handled the timer event
-mock.WaitForConfirms()
+confirm.Wait()
 
 // This prints 10.
 fmt.Println(count)
 
 // for convenience and readability, you can pass options to make waits happen
-mock.Add(20 * time.Second, clock.ExpectUpcomingConfirms(2), clock.WaitAfter)
+confirm.Add(2)
+mock.Add(20 * time.Second)
+confirm.Wait()
 
 // This prints 30.
 fmt.Println(count)

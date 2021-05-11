@@ -64,6 +64,15 @@ func TestClock_Now(t *testing.T) {
 	}
 }
 
+// Ensure that the clock's time matches the standary library.
+func TestClock_Since(t *testing.T) {
+	a := time.Since(time.Unix(0, 0)).Round(time.Second)
+	b := New().Since(time.Unix(0, 0)).Round(time.Second)
+	if a.Seconds() != b.Seconds() {
+		t.Errorf("not equal: %s != %s", a, b)
+	}
+}
+
 // Ensure that the clock sleeps for the appropriate amount of time.
 func TestClock_Sleep(t *testing.T) {
 	var ok bool

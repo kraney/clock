@@ -7,13 +7,12 @@ import (
 	"time"
 )
 
+const (
+	TimerStart CheckpointName = "TimerStart"
+)
+
 var (
-	WaitForStartsBefore           = &WaitForStartsBeforeOption{}
-	WaitBefore                    = &WaitBeforeOption{}
-	WaitForStartsAfter            = &WaitForStartsAfterOption{}
-	WaitAfter                     = &WaitAfterOption{}
-	IgnoreUnexpectedUpcomingEvent = &IgnoreUnexpectedUpcomingEventOption{}
-	OptimisticSched               = &OptimisticSchedOption{}
+	WaitBefore = &WaitBeforeOption{}
 )
 
 type Option interface {
@@ -32,20 +31,16 @@ func FailOnUnexpectedUpcomingEvent(t *testing.T) *FailOnUnexpectedUpcomingEventO
 func (o *FailOnUnexpectedUpcomingEventOption) PriorEventsOption(mock *UnsynchronizedMock) {}
 
 func (o *FailOnUnexpectedUpcomingEventOption) UpcomingEventsOption(mock *UnsynchronizedMock) {
-	mock.tForFail = o.t
+	mock.startCheckpoint = NewFailOnUnexpectedCheckpoint(TimerStart, o.t)
 }
-
-func (o *FailOnUnexpectedUpcomingEventOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {}
 
 type IgnoreUnexpectedUpcomingEventOption struct{}
 
 func (o *IgnoreUnexpectedUpcomingEventOption) PriorEventsOption(mock *UnsynchronizedMock) {}
 
 func (o *IgnoreUnexpectedUpcomingEventOption) UpcomingEventsOption(mock *UnsynchronizedMock) {
-	mock.tForFail = nil
+	mock.startCheckpoint = NewOptionalCheckPoint(TimerStart)
 }
-
-func (o *IgnoreUnexpectedUpcomingEventOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {}
 
 type ExpectUpcomingStartsOption struct {
 	starts int
@@ -61,18 +56,6 @@ func (o *ExpectUpcomingStartsOption) UpcomingEventsOption(mock *UnsynchronizedMo
 	mock.ExpectStarts(int(o.starts))
 }
 
-func (o *ExpectUpcomingStartsOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {}
-
-type WaitForStartsBeforeOption struct{}
-
-func (o *WaitForStartsBeforeOption) PriorEventsOption(mock *UnsynchronizedMock) {
-	mock.WaitForStart()
-}
-
-func (o *WaitForStartsBeforeOption) UpcomingEventsOption(mock *UnsynchronizedMock) {}
-
-func (o *WaitForStartsBeforeOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {}
-
 type WaitBeforeOption struct{}
 
 func (o *WaitBeforeOption) PriorEventsOption(mock *UnsynchronizedMock) {
@@ -81,28 +64,6 @@ func (o *WaitBeforeOption) PriorEventsOption(mock *UnsynchronizedMock) {
 
 func (o *WaitBeforeOption) UpcomingEventsOption(mock *UnsynchronizedMock) {}
 
-func (o *WaitBeforeOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {}
-
-type WaitForStartsAfterOption struct{}
-
-func (o *WaitForStartsAfterOption) PriorEventsOption(mock *UnsynchronizedMock) {}
-
-func (o *WaitForStartsAfterOption) UpcomingEventsOption(mock *UnsynchronizedMock) {}
-
-func (o *WaitForStartsAfterOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {
-	mock.WaitForStart()
-}
-
-type WaitAfterOption struct{}
-
-func (o *WaitAfterOption) PriorEventsOption(mock *UnsynchronizedMock) {}
-
-func (o *WaitAfterOption) UpcomingEventsOption(mock *UnsynchronizedMock) {}
-
-func (o *WaitAfterOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {
-	mock.Wait()
-}
-
 type OptimisticSchedOption struct{}
 
 func (o *OptimisticSchedOption) PriorEventsOption(mock *UnsynchronizedMock) {}
@@ -110,13 +71,6 @@ func (o *OptimisticSchedOption) PriorEventsOption(mock *UnsynchronizedMock) {}
 func (o *OptimisticSchedOption) UpcomingEventsOption(mock *UnsynchronizedMock) {
 	gosched()
 }
-
-func (o *OptimisticSchedOption) AfterClockAdvanceOption(mock *UnsynchronizedMock) {}
-
-const (
-	OnStart   CheckpointName = "start"
-	OnConfirm CheckpointName = "confirm"
-)
 
 // UnsynchronizedMock represents a mock clock that only moves forward programmatically.
 // It can be preferable to a real-time clock when testing time-based functionality. By
@@ -127,20 +81,16 @@ type UnsynchronizedMock struct {
 	now    time.Time   // current time
 	timers clockTimers // tickers & timers
 
-	syncPoints map[CheckpointName]Checkpoint
-
-	tForFail *testing.T
+	startCheckpoint Checkpoint
 }
 
 // NewUnsynchronizedMock returns an instance of a mock clock.
 // The current time of the mock clock on initialization is the Unix epoch.
 func NewUnsynchronizedMock(opts ...Option) *UnsynchronizedMock {
 	ret := &UnsynchronizedMock{
-		now:        time.Unix(0, 0),
-		syncPoints: make(map[CheckpointName]Checkpoint, 1),
+		now:             time.Unix(0, 0),
+		startCheckpoint: NewOptionalCheckPoint(TimerStart),
 	}
-	ret.syncPoints[OnStart] = NewOptionalCheckPoint(OnStart)
-	ret.syncPoints[OnConfirm] = NewOptionalCheckPoint(OnConfirm)
 	for _, opt := range opts {
 		opt.UpcomingEventsOption(ret)
 	}
@@ -150,24 +100,16 @@ func NewUnsynchronizedMock(opts ...Option) *UnsynchronizedMock {
 // ExpectStarts informs the mock how many timers should have been created before we advance the clock
 func (m *UnsynchronizedMock) ExpectStarts(delta int) {
 	m.mu.Lock()
-	sp := m.syncPoints[OnStart]
-	m.mu.Unlock()
-	sp.Add(delta)
+	defer m.mu.Unlock()
+	m.startCheckpoint.Add(delta)
 }
 
-// WaitForStart will block until all expected timers have started
-func (m *UnsynchronizedMock) WaitForStart() {
+// Wait will block until all expected timers have started
+func (m *UnsynchronizedMock) Wait() {
 	m.mu.Lock()
-	sp := m.syncPoints[OnStart]
+	sp := m.startCheckpoint
 	m.mu.Unlock()
 	sp.Wait()
-}
-
-// Wait waits for starts and confirms before returning
-func (m *UnsynchronizedMock) Wait() {
-	for _, sp := range m.syncPoints {
-		sp.Wait()
-	}
 }
 
 // Add moves the current time of the mock clock forward by the specified duration.
@@ -301,8 +243,7 @@ func (m *UnsynchronizedMock) NewTicker(d time.Duration) *Ticker {
 		next: m.now.Add(d),
 	}
 	m.timers = append(m.timers, (*internalTicker)(t))
-	sp := m.syncPoints[OnStart]
-	sp.Done()
+	m.startCheckpoint.Done()
 	return t
 }
 
@@ -319,8 +260,7 @@ func (m *UnsynchronizedMock) NewTimer(d time.Duration) *Timer {
 		stopped: false,
 	}
 	m.timers = append(m.timers, (*internalTimer)(t))
-	sp := m.syncPoints[OnStart]
-	sp.Done()
+	m.startCheckpoint.Done()
 	return t
 }
 

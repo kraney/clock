@@ -16,25 +16,20 @@ type Mock struct {
 func NewMock(t *testing.T, expectedStarts int) *Mock {
 	ret := &Mock{
 		UnsynchronizedMock: UnsynchronizedMock{
-			now:        time.Unix(0, 0),
-			syncPoints: make(map[CheckpointName]Checkpoint),
+			now:             time.Unix(0, 0),
+			startCheckpoint: NewFailOnUnexpectedCheckpoint(TimerStart, t),
 		},
 	}
-	ret.syncPoints[OnStart] = NewFailOnUnexpectedCheckpoint(OnStart, t)
-	ret.syncPoints[OnConfirm] = NewFailOnUnexpectedCheckpoint(OnConfirm, t)
 	ExpectUpcomingStarts(expectedStarts).UpcomingEventsOption(&ret.UnsynchronizedMock)
-	if t != nil {
-		FailOnUnexpectedUpcomingEvent(t).UpcomingEventsOption(&ret.UnsynchronizedMock)
-	}
 	return ret
 }
 
 func (m *Mock) Add(d time.Duration, opts ...Option) {
-	opts = append(opts, WaitBefore, WaitAfter)
+	opts = append(opts, WaitBefore)
 	m.UnsynchronizedMock.Add(d, opts...)
 }
 
 func (m *Mock) Set(t time.Time, opts ...Option) {
-	opts = append(opts, WaitBefore, WaitAfter)
+	opts = append(opts, WaitBefore)
 	m.UnsynchronizedMock.Set(t, opts...)
 }
